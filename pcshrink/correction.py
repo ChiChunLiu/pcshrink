@@ -175,12 +175,5 @@ class ShrinkageCorrector(object):
             pcem = PCEM(self.Y_train[:, idx], self.F_hat)
             pcem.run()
 
-            # project the heldout person onto those factors 
-            # TODO: implement projection
-            self.L_proj[i, :] = l_proj
-
-    def correct(self):
-        """
-        """
-        raise NotImplementedError
-
+            # project the heldout person onto the principal axes 
+            self.L_proj[i, :] = self.Y_train[:, i] @ self.F_hat

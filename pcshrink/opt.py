@@ -79,10 +79,8 @@ class PCEM(object):
         eps : float
             small difference in likelihood (between iterations) to 
             terminate the algorithim
-
         max_iter : int
             maximum number of iterations to teriminate the algorithim
-        
         sigma_e : float
             noise variance which is assumed to be very small to approximate the 
             zero noise limit
@@ -109,5 +107,8 @@ class PCEM(object):
             if (delta_t < eps) or (t > max_iter):
                 not_converged = False
 
+        # convert likelihoods to array
         self.liks = np.array(self.liks)
-        # TODO: add qr decomp to orthoganlize factors 
+        
+        # orthoganlize the factors with QR decomposition
+        self.F, R = np.linalg.qr(self.F)
