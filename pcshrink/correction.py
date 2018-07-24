@@ -140,20 +140,20 @@ class ShrinkageCorrector(object):
         """centers and scales the training gentoypes
         """
         # compute the emprical mean for each SNP ignoring NAs
-        self.mu = np.nanmean(self.Y_train, axis=0)
+        self.mu = np.nanmean(self.Y_train, axis=1)
         
         # compute the scaling factor using het or empircal sd
         if self.scale_method == "patterson":
-            f = np.nansum(self.Y_train, axis=0) / (2. * self.data.n)
+            f = np.nansum(self.Y_train, axis=1) / (2. * self.data.n)
             # TODO: check sqrt 
             self.sigma = np.sqrt(2 * f * (1. - f))
         elif self.scale_method == "empirical": 
-            self.sigma = np.nanstd(self.Y_train, axis=0)
+            self.sigma = np.nanstd(self.Y_train, axis=1)
         else:
             raise ValueError("scale method is not found please use patterson or empirical as arguments")
     
         # do the normalization and impute missing values to 0
-        self.Y_train = (self.Y_train - self.mu) / self.sigma
+        self.Y_train = np.transpose((self.Y_train.T - self.mu) / self.sigma)
         self.Y_train[np.isnan(Y_train)] = 0.0
 
     def train(self):

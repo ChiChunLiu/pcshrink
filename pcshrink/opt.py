@@ -8,7 +8,7 @@ import scipy.stats as stats
 
 class PCEM(object):
 
-    def __init__(self, y, Y, F_hat):
+    def __init__(self, Y, F_hat):
         """Expectation Maximazation (EM) for maximum likelihood estimation of 
         the probalistic formulation of principal components analysis (PCA). In the 
         zero noise limit this results in an efficent alternating least squares 
@@ -16,8 +16,6 @@ class PCEM(object):
 
         Arguments
         ---------
-        y : np.array
-            p x 1 normalized genotypes of the held-out individual 
         Y : np.array
             p x n normalized genotype matrix
         F : np.array
@@ -35,7 +33,6 @@ class PCEM(object):
             t x 1 array of likelihood values for each iteration
             of the EM
         """
-        self.y = y
         self.Y = Y
         self.p, self.n = Y.shape
 
