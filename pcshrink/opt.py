@@ -8,7 +8,7 @@ import scipy.stats as stats
 
 class PCEM(object):
 
-    def __init__(self, Y, F_hat):
+    def __init__(self, y, Y, F_hat):
         """Expectation Maximazation (EM) for maximum likelihood estimation of 
         the probalistic formulation of principal components analysis (PCA). In the 
         zero noise limit this results in an efficent alternating least squares 
@@ -16,6 +16,8 @@ class PCEM(object):
 
         Arguments
         ---------
+        y : np.array
+            p x 1 normalized genotypes of the held-out individual 
         Y : np.array
             p x n normalized genotype matrix
         F : np.array
@@ -33,6 +35,7 @@ class PCEM(object):
             t x 1 array of likelihood values for each iteration
             of the EM
         """
+        self.y = y
         self.Y = Y
         self.p, self.n = Y.shape
 
@@ -43,14 +46,14 @@ class PCEM(object):
         """Compute the posterior expectation of the latent variable
         which can be see as obtaining an estimate of the loadings matrix
         """
-        self.L = np.linalg.solve(self.F.T @ self.F, self.F.T @ self.Y)
+        self.L = np.linalg.solve(self.F.T @ self.F, self.F.T @ self.Y).T
 
     def _m_step(self):
         """Maximize the expected complete data log-likelihood with respect
         to the parameters which can be seen as obtaining an estimate 
         of the factors matrix
         """
-        self.F = np.linalg.solve(self.Y @ self.L, self.L @ self.L.T) 
+        self.F = np.linalg.solve(self.L.T @ self.L, self.L.T @ self.Y.T).T 
 
     def _comp_lik(self, sigma_e):
         """Compute the likelihood given the current parameters
@@ -93,16 +96,19 @@ class PCEM(object):
         not_converged = True
 
         while(not_converged):
-
+            
+            # updates
             self._e_step()
             self._m_step()
             
             t += 1
 
+            # compute likelihood
             lik = self._comp_lik(sigma_e)
             self.liks.append(lik)
-            delta_t = self.liks[t] - self.liks[t - 1]
 
+            # check convergence
+            delta_t = self.liks[t] - self.liks[t - 1]
             if (delta_t < eps) or (t > max_iter):
                 not_converged = False
 
