@@ -52,26 +52,19 @@ class PCEM(object):
         """
         self.F = np.linalg.solve(self.L.T @ self.L, self.L.T @ self.Y.T).T 
 
-    def _comp_lik(self, sigma_e):
+    def _comp_lik(self):
         """Compute the likelihood given the current parameters
-
-        Arguments
-        ---------
-        sigma_e : float
-            noise variance which is assumed to be very small to approximate the 
-            zero noise limit
 
         Returns
         -------
         lik : float
             the evaluted likelihood given the current estimate
         """
-        log_lik = np.sum(stats.norm.logpdf(self.Y, loc=self.F @ self.L.T, scale=sigma_e)) 
-        lik = np.exp(log_lik)
-
+        lik = np.linalg.norm(self.Y - self.F @ self.L.T, "fro")
+        
         return(lik)
 
-    def run(self, eps, max_iter, sigma_e=1e-5):
+    def run(self, eps, max_iter):
         """Run the EM algorithim for problastic pca 
 
         Arguments
@@ -99,11 +92,12 @@ class PCEM(object):
             t += 1
 
             # compute likelihood
-            lik = self._comp_lik(sigma_e)
+            lik = self._comp_lik()
             self.liks.append(lik)
 
             # check convergence
-            delta_t = self.liks[t] - self.liks[t - 1]
+            delta_t = self.liks[t-1] - self.liks[t]
+            print(t, lik, delta_t)
             if (delta_t < eps) or (t > max_iter):
                 not_converged = False
 
