@@ -5,4 +5,4 @@ from __future__ import print_function
 __version__='1.0.0'
 
 from .data import *
-from .opt import *
+from .shrink import *
