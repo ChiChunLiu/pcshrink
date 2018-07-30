@@ -72,12 +72,13 @@ class PCShrinker(object):
         """
         if s != None:
             self.samp_idx = np.random.choice(self.Y.shape[1], s, replace=False)
-            Y = self.Y[:, samp_idx]
+            Y = self.Y[:, self.samp_idx]
             n = s
         else: 
             Y = np.copy(self.Y)
             n = self.n
 
+        # loadings matrix storing shrunk coordinates
         L_shrunk = np.empty((n, k))
         for i in range(n):
                 
