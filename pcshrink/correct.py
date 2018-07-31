@@ -7,13 +7,12 @@ import numpy as np
 
 from scipy.sparse.linalg import svds
 from sklearn.utils.extmath import svd_flip
-from sklearn import linear_model
 
 
 class ShrinkageCorrector(object):
     """Corrects for regression towards the mean effect 
     when predicting PC scores for out of sample individuals. 
-    We essentially implement the ideas outlined in 
+    We essentially implement the ideas outlined in ... 
 
     https://projecteuclid.org/download/pdfview_1/euclid.aos/1291126967
 
