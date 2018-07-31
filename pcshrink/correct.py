@@ -130,10 +130,11 @@ class ShrinkageCorrector(object):
         """
         if s != None:
             # shrink only a random subset of samples
-            self.samp_idx = np.random.choice(self.Y.shape[1], s, replace=False)
+            self.sample_idx = np.random.choice(self.Y.shape[1], s, replace=False)
             r = s
         else: 
             # shrink all the samples
+            self.sample_idx = np.arange(self.n)
             r = self.n
 
         # loadings matrix storing shrunk coordinates
@@ -155,10 +156,11 @@ class ShrinkageCorrector(object):
             self.L_shrunk[i, :] = F.T @ self.Y[:, i]
 
         # mean pc score from PCA on the full dataset
-        mean_pc_scores = np.mean(self.L[self.samp_idx, :q], axis=0)
+        mean_pc_scores = np.mean(self.L[self.sample_idx, :q]**2, axis=0)
 
         # mean pc scores using the projected samples
-        mean_pred_pc_scores = np.mean(self.L_shrunk, axis=0)
+        mean_pred_pc_scores = np.mean(self.L_shrunk**2, axis=0)
 
         # jackknife estimate of the shrinkage factor
-        self.shrinkage_factors = np.sqrt((mean_pc_scores**2) / (mean_pred_pc_scores**2))
+        self.tau = 1. / np.sqrt(mean_pred_pc_scores / mean_pc_scores)
+        
