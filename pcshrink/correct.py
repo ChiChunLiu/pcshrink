@@ -47,8 +47,8 @@ class ShrinkageCorrector(object):
         fast jackknife approach
     L_shrunk : np.array
         loadings matrix of projected heldout individuals
-    shrinkage_factors : np.array
-        shrinkage correction factors for each pc
+    tau : np.array
+        shrinkage correction factors for each PC
     """
     def __init__(self, Y, k):
         
