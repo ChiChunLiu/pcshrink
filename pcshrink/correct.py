@@ -12,7 +12,8 @@ from sklearn.utils.extmath import svd_flip
 class ShrinkageCorrector(object):
     """Corrects for regression towards the mean effect 
     when predicting PC scores for out of sample individuals. 
-    We essentially implement the ideas outlined in ... 
+    We essentially implement the the jackknife procedure briefly 
+    outlined in ... 
 
     https://projecteuclid.org/download/pdfview_1/euclid.aos/1291126967
 
@@ -76,7 +77,7 @@ class ShrinkageCorrector(object):
 
         Returns
         -------
-        A tuple with ...
+        A tuple with elements ...
 
         L : np.array
             loadings matrix from running PCA 
@@ -163,4 +164,3 @@ class ShrinkageCorrector(object):
 
         # jackknife estimate of the shrinkage factor
         self.tau = 1. / np.sqrt(mean_pred_pc_scores / mean_pc_scores)
-        
