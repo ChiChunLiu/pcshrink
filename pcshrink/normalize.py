@@ -38,13 +38,10 @@ class Normalizer(object):
     p_fil : int
         number of features (snps) after
         filtering 
-    mu : float
+    mu : np.array
         mean of each feature
-    std : float
-        emp std dev of each feature
-    het : float
-        emp binomial std dev of 
-        each feature
+    s : np.array
+        scaling factor for each feature
     """
     def __init__(self, Y, eps, scale_type):
         
@@ -73,13 +70,14 @@ class Normalizer(object):
 
         # scale
         if self.scale_type == "emp":
-            self.std = np.nanstd(self.Y, axis=1).reshape(self.p_fil, 1)
-            self.Y = self.Y / self.std
+            self.s = np.nanstd(self.Y, axis=1).reshape(self.p_fil, 1)
         elif self.scale_type == "patterson":
-            self.het = np.sqrt(2. * self.f[self.snp_idx] * (1. - self.f[self.snp_idx])).reshape(self.p_fil, 1)
-            self.Y = self.Y / self.het
+            self.s = np.sqrt(2. * self.f[self.snp_idx] * (1. - self.f[self.snp_idx])).reshape(self.p_fil, 1)
         else:
             raise ValueError
+        
+        # scale the data
+        self.Y = self.Y / self.s
         
         # impute the missing genotypes with the mean
         self.Y[np.isnan(self.Y)] = 0.0

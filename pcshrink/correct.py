@@ -164,3 +164,27 @@ class ShrinkageCorrector(object):
 
         # jackknife estimate of the shrinkage factor
         self.tau = 1. / np.sqrt(mean_pred_pc_scores / mean_pc_scores)
+    
+    def lstsq_project(self, y, k):
+        """Projects an individual on pcs using non-missing features
+
+        Arguments
+        ---------
+        y : np.array
+            centered and scaled sample to projected
+        k : int
+            number of pcs to use for the projection
+
+        Returns
+        -------
+        L_ : np.array
+            loadings for the focal individual corrected
+            and uncorrected
+        """
+        non_missing_idx = np.where(~np.isnan(y))[0]
+        F = self.F[non_missing_idx, :k]
+        L_ = np.empty((k, 2)) 
+        L_[:, 0] = np.linalg.lstsq(F, y)
+        L_[:, 1] = self.tau * L_[:, 0]
+
+        return(L_)
