@@ -2,15 +2,49 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import sys
 import numpy as np
-
-from scipy.sparse.linalg import svds
-from sklearn.utils.extmath import svd_flip
 
 
 class Normalizer(object):
-    """
+    """Normalizes the data matrix to have 
+    0 mean accross each feature and scaled 
+    variance 
+
+    Arguments 
+    ---------
+    Y : np.array
+        p x n normalized genotype matrix
+    eps : float
+        min allele frequency cutoff
+    scale_type : str
+        method used for scaling each feature
+
+    Attributes
+    ----------
+    Y : np.array
+        p x n normalized genotype matrix
+    eps : float
+        min allele frequency cutoff
+    scale_type : str
+        method used for scaling each feature
+    p : int
+        number of features (snps)
+    n : int
+        number of samples (individuals) 
+    f : np.array
+        frequency of each feature
+    snp_idx : np.array
+        indicies of features to keep
+    p_fil : int
+        number of features (snps) after
+        filtering 
+    mu : float
+        mean of each feature
+    std : float
+        emp std dev of each feature
+    het : float
+        emp binomial std dev of 
+        each feature
     """
     def __init__(self, Y, eps, scale_type):
         
@@ -18,7 +52,7 @@ class Normalizer(object):
         self.Y = Y
     
         # allele frequency cutoff
-        self.eps
+        self.eps = eps
 
         self.scale_type = scale_type
 
@@ -36,20 +70,23 @@ class Normalizer(object):
     
         # center
         self.Y = self.Y - self.mu 
-        self.Y[np.isnan(self.Y)] = 0.0
 
         # scale
         if self.scale_type == "emp":
             self.std = np.nanstd(self.Y, axis=1).reshape(self.p_fil, 1)
             self.Y = self.Y / self.std
         elif self.scale_type == "patterson":
-            self.het = np.sqrt(2. * self.f[self.snp_idx * (1. - self.f[self.snp_idx])).reshape(self.p_fil, 1)
+            self.het = np.sqrt(2. * self.f[self.snp_idx] * (1. - self.f[self.snp_idx])).reshape(self.p_fil, 1)
             self.Y = self.Y / self.het
         else:
             raise ValueError
+        
+        # impute the missing genotypes with the mean
+        self.Y[np.isnan(self.Y)] = 0.0
 
     def _estimate_frequencies(self):
-        """
+        """estimates allele frequencies and creates 
+        the indicies for features to keep
         """
         # use allele frequency estimator from Price et al. 2006
         self.f = (1. + np.nansum(self.Y, axis=1)) / (2 + (2. * self.n))
