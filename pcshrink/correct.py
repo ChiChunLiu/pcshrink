@@ -183,6 +183,7 @@ class ShrinkageCorrector(object):
         """
         non_missing_idx = np.where(~np.isnan(y))[0]
         F = self.F[non_missing_idx, :k]
+        y = y[non_missing_idx]
         L_ = np.empty((k, 2)) 
         L_[:, 0] = np.linalg.lstsq(F, y)
         L_[:, 1] = self.tau * L_[:, 0]
