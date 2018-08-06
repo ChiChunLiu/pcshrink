@@ -152,6 +152,7 @@ class ShrinkageCorrector(object):
                 
             # PCA on the dataset holding the ith sample out 
             L, F, Sigma = self._pca(self.Y[:, idx], q)
+            F = self._orient_sign(F, self.F)
                 
             # project the ith sample back onto the dataset 
             self.L_shrunk[i, :] = F.T @ self.Y[:, i]
@@ -164,6 +165,34 @@ class ShrinkageCorrector(object):
 
         # jackknife estimate of the shrinkage factor
         self.tau = 1. / np.sqrt(mean_pred_pc_scores / mean_pc_scores)
+
+    def _orient_sign(self, F, F_ref):
+        """Orients the sign of the factors matrix to a reference
+        factors matrix
+
+        Arguments
+        ---------
+        F : np.array
+            factor matrix whose sign is to be flipped
+        F_ref : np.array
+            factor matrix whose sign is to be oriented
+            towards
+
+        Returns
+        -------
+        F : np.array
+            factor matrix whose with flipped signs
+        """
+        for k in range(K.shape[1]):
+            
+            # compute the sign of correlation
+            s_k = np.sign(np.linalg.corcoef(F[:, k], F_ref[:, k])[0, 1])
+
+            # if negatively correlated
+            if s_k == -1:
+                F[:, k] = -F[:, k]
+
+        return(F)
     
     def lstsq_project(self, y, k):
         """Projects an individual on pcs using non-missing features
@@ -177,15 +206,12 @@ class ShrinkageCorrector(object):
 
         Returns
         -------
-        L_ : np.array
-            loadings for the focal individual corrected
-            and uncorrected
+        l : np.array
+            uncorrected loadings for the focal individual
         """
         non_missing_idx = np.where(~np.isnan(y))[0]
         F = self.F[non_missing_idx, :k]
         y = y[non_missing_idx]
-        L_ = np.empty((k, 2)) 
-        L_[:, 0] = np.linalg.lstsq(F, y)
-        L_[:, 1] = self.tau * L_[:, 0]
+        l = np.linalg.lstsq(F, y)
 
-        return(L_)
+        return(l)
