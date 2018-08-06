@@ -183,10 +183,10 @@ class ShrinkageCorrector(object):
         F : np.array
             factor matrix whose with flipped signs
         """
-        for k in range(K.shape[1]):
+        for k in range(F.shape[1]):
             
             # compute the sign of correlation
-            s_k = np.sign(np.linalg.corcoef(F[:, k], F_ref[:, k])[0, 1])
+            s_k = np.sign(np.corrcoef(F[:, k], F_ref[:, k])[0, 1])
 
             # if negatively correlated
             if s_k == -1:
@@ -212,6 +212,6 @@ class ShrinkageCorrector(object):
         non_missing_idx = np.where(~np.isnan(y))[0]
         F = self.F[non_missing_idx, :k]
         y = y[non_missing_idx]
-        l = np.linalg.lstsq(F, y)
+        l = np.linalg.lstsq(F, y)[0]
 
         return(l)
