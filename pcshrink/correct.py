@@ -10,10 +10,9 @@ from sklearn.utils.extmath import svd_flip
 
 
 class ShrinkageCorrector(object):
-    """Corrects for regression towards the mean effect
-    when predicting PC scores for out of sample individuals.
-    We essentially implement the the jackknife procedure briefly
-    outlined in ...
+    """Corrects for regression towards the mean effect when predicting PC
+    scores for out of sample individuals. We essentially implement the the
+    jackknife procedure briefly outlined in ...
 
     https://projecteuclid.org/download/pdfview_1/euclid.aos/1291126967
 
@@ -65,8 +64,7 @@ class ShrinkageCorrector(object):
         self.L, self.F, self.Sigma = self._pca(self.Y, self.k)
 
     def _pca(self, Y, k):
-        """PCA using a fast truncated svd implementation
-        in scipy
+        """PCA using a fast truncated svd implementation in scipy
 
         Arguments
         ---------
@@ -85,24 +83,23 @@ class ShrinkageCorrector(object):
         F : np.array
             factor matrix from running PCA
             on the original dataset
-        Sigma : np.array
-            matrix of singular values
+        Lamb : np.array
+            matrix of eigen values
         """
         # compute truncated svd of data matrix
-        U, Sigma, VT = svds(Y.T, k)
+        V, lamb, VT = svds(Y.T @ Y, k)
 
         # singular values
-        Sigma = np.diag(Sigma[::-1])
+        sigma = np.sqrt(lamb[::-1])
+        sigma_inv = 1. / sigma
 
-        # left and right eigenvectors
-        U, VT = svd_flip(U[:, ::-1], VT[::-1])
+        Sigma = np.diag(sigma)
+        Sigma_inv = np.diag(sigma_inv)
 
-        # assign to matricies for matrix
-        # factorization interpretation
-        F = (Sigma @ VT).T
+        # flip signs of right eigenvectors
+        V, VT = svd_flip(V[:, ::-1], VT[::-1])
 
-        # normalize vectors to be unit length
-        F = F / np.linalg.norm(F, axis=0, ord=2)
+        F = (Y @ V @ Sigma_inv)
 
         # project on to factors
         L = (F.T @ Y).T
@@ -114,10 +111,11 @@ class ShrinkageCorrector(object):
 
         https://projecteuclid.org/download/pdfview_1/euclid.aos/1291126967
 
-        We holdout each sample, run PCA on the remaining and subsequently project the
-        heldout sample on the training set pcs to obtain a predicted pc score. The predicted
-        pc scores alongside the original PCA run on all the samples can be used to estimate a
-        shrinkage correction factor that can be applied to new samples.
+        We holdout each sample, run PCA on the remaining and subsequently
+        project the heldout sample on the training set pcs to obtain a
+        predicted pc score. The predicted pc scores alongside the original PCA
+        run on all the samples can be used to estimate a shrinkage correction
+        factor that can be applied to new samples.
 
         Arguments
         ---------
@@ -131,7 +129,8 @@ class ShrinkageCorrector(object):
         """
         if s != None:
             # shrink only a random subset of samples
-            self.sample_idx = np.random.choice(self.Y.shape[1], s, replace=False)
+            self.sample_idx = np.random.choice(self.Y.shape[1],
+                                               s, replace=False)
             r = s
         else:
             # shrink all the samples

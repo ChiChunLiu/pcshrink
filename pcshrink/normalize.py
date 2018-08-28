@@ -6,9 +6,8 @@ import numpy as np
 
 
 class Normalizer(object):
-    """Normalizes the data matrix to have
-    0 mean accross each feature and scaled
-    variance
+    """Normalizes the data matrix to have 0 mean accross each feature and
+    scaled variance
 
     Arguments
     ---------
@@ -72,7 +71,8 @@ class Normalizer(object):
         if self.scale_type == "emp":
             self.s = np.nanstd(self.Y, axis=1).reshape(self.p_fil, 1)
         elif self.scale_type == "patterson":
-            self.s = np.sqrt(2. * self.f[self.snp_idx] * (1. - self.f[self.snp_idx])).reshape(self.p_fil, 1)
+            het = 2. * self.f[self.snp_idx] * (1. - self.f[self.snp_idx])
+            self.s = np.sqrt(het).reshape(self.p_fil, 1)
         else:
             raise ValueError
 
@@ -83,8 +83,8 @@ class Normalizer(object):
         self.Y[np.isnan(self.Y)] = 0.0
 
     def _estimate_frequencies(self):
-        """estimates allele frequencies and creates
-        the indicies for features to keep
+        """estimates allele frequencies and creates the indicies for features
+        to keep
         """
         # use allele frequency estimator from Price et al. 2006
         self.f = (1. + np.nansum(self.Y, axis=1)) / (2 + (2. * self.n))
