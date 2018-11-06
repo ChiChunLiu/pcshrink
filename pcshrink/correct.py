@@ -180,7 +180,7 @@ class ShrinkageCorrector(object):
         U, s, Vt = linalg.svd(Y, full_matrices = False)
         return U, s, Vt
         
-    def _downdate(U, s, Vt, k, i, sparse = True):
+    def _downdate(self, U, s, Vt, k, i, sparse = True):
         '''
         Arguments:
         ----------
