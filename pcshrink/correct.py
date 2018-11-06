@@ -176,7 +176,7 @@ class ShrinkageCorrector(object):
         self.tau = 1. / np.sqrt(mean_pred_pc_scores / mean_pc_scores)
     
     
-    def _full_svd(self, Y)
+    def _full_svd(self, Y):
         U, s, Vt = linalg.svd(Y, full_matrices = False)
         
     def _downdate(U, s, Vt, k, i, sparse = True):
