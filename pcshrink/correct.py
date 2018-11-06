@@ -87,9 +87,8 @@ class ShrinkageCorrector(object):
             matrix of eigen values
         """
         # compute truncated svd of data matrix
-        V, lamb, VT = svds(Y.T @ Y, k)
 
-        # singular values
+        V, lamb, VT = svds(Y.T @ Y, k)
         sigma = np.sqrt(lamb[::-1])
         sigma_inv = 1. / sigma
 
@@ -177,8 +176,14 @@ class ShrinkageCorrector(object):
     
     
     def _full_svd(self, Y):
-        U, s, Vt = linalg.svd(Y, full_matrices = False)
-        return U, s, Vt
+        V, lamb, VT = linalg.svd(Y.T @ Y, full_matrices = False)
+        s = np.sqrt(lamb)
+        sigma_inv = 1. / s
+        Sigma = np.diag(s)
+        Sigma_inv = np.diag(sigma_inv)
+        V, VT = svd_flip(V, VT)
+        U = (Y @ V @ Sigma_inv)
+        return U, s, VT
         
     def _downdate(self, U, s, Vt, k, i, sparse = True):
         '''
