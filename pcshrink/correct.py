@@ -7,7 +7,7 @@ import numpy as np
 
 from scipy.sparse.linalg import svds
 from sklearn.utils.extmath import svd_flip
-
+from scipy import linalg
 
 class ShrinkageCorrector(object):
     """Corrects for regression towards the mean effect when predicting PC
@@ -106,7 +106,7 @@ class ShrinkageCorrector(object):
 
         return((L, F, Sigma))
 
-    def jackknife(self, q, s=None, o=10):
+    def jackknife(self, q, downdate=False, s=None, o=10):
         """Jackknife estimate of shrinkage correction factor outlined in ...
 
         https://projecteuclid.org/download/pdfview_1/euclid.aos/1291126967
@@ -141,21 +141,31 @@ class ShrinkageCorrector(object):
         self.L_shrunk = np.empty((r, q))
 
         # jackknife
-        for i in range(r):
+        if downdate:
+            self._U, self._s, self._Vt = self._full_svd(self.Y)
+            for i in range(r):
 
-            if i % o == 0:
-                sys.stdout.write("holding out sample {}\n".format(i))
+                if i % o == 0:
+                    sys.stdout.write("holding out sample {}\n".format(i))
+                
+                F = self._downdate(self._U, self._s, self._Vt, k=q, i=i)   
+                F = self._orient_sign(F, self.F)
+                # project the ith sample back onto the dataset
+                self.L_shrunk[i, :] = F.T @ self.Y[:, i]        
+        else:
+            for i in range(r):
 
-            idx = np.ones(self.n, dtype="bool")
-            idx[i] = False
+                if i % o == 0:
+                    sys.stdout.write("holding out sample {}\n".format(i))
 
-            # PCA on the dataset holding the ith sample out
-            L, F, Sigma = self._pca(self.Y[:, idx], q)
-            F = self._orient_sign(F, self.F)
+                idx = np.ones(self.n, dtype="bool")
+                idx[i] = False
 
-            # project the ith sample back onto the dataset
-            self.L_shrunk[i, :] = F.T @ self.Y[:, i]
-
+                # PCA on the dataset holding the ith sample out
+                L, F, Sigma = self._pca(self.Y[:, idx], q)
+                F = self._orient_sign(F, self.F)
+                self.L_shrunk[i, :] = F.T @ self.Y[:, i]
+        
         # mean pc score from PCA on the full dataset
         mean_pc_scores = np.mean(self.L[self.sample_idx, :q]**2, axis=0)
 
@@ -164,6 +174,52 @@ class ShrinkageCorrector(object):
 
         # jackknife estimate of the shrinkage factor
         self.tau = 1. / np.sqrt(mean_pred_pc_scores / mean_pc_scores)
+    
+    
+    def _full_svd(self, Y)
+        U, s, Vt = linalg.svd(Y, full_matrices = False)
+        
+    def _downdate(U, s, Vt, k, i, sparse = True):
+        '''
+        Arguments:
+        ----------
+        U : ndarray
+            Unitary matrix having left singular vectors as columns. 
+        s : ndarray (r,)
+            The singular values sorted in non-increasing order.
+        Vt : ndarray
+            Unitary matrix having right singular vectors as rows.
+        k: int
+            number of pcs to compute
+        sparese: boolean
+            use sparse algorithm for SVD
+        Returns:
+        --------
+        F: new principal component leaving i-th sample out
+
+        see Fast low-rank modifications of the thin singular value
+        decomposition by Matthew Brand (2006)
+        '''
+
+        l = len(s)
+        n = Vt[:, i].reshape(-1, 1)
+        S = np.diag(s)
+        # building matrix K
+        K1 = np.block([[S,               np.zeros((l, 1))],
+                      [np.zeros((1, l)), np.zeros((1, 1))]])
+        t = np.sqrt(np.max([1 - n.T @ n, 0]))     # take max to prevent negative value
+        K2 = np.eye(l+1) - np.vstack((n, 0)) @ np.vstack((n, t)).T
+        K = K1 @ K2
+        # truncated SVD on K
+        if sparse:
+            U2, _, _ = svds(K, k = k)
+            newF = np.flip(np.hstack((U, np.zeros((U.shape[0],1)))) @ U2[:, :k], axis = 1)
+        else:
+            U2, _, _ = linalg.svd(K)
+            newF = np.hstack((U, np.zeros((U.shape[0],1)))) @ U2[:, :k]
+
+        return newF
+    
 
     def _orient_sign(self, F, F_ref):
         """Orients the sign of the factors matrix to a reference
