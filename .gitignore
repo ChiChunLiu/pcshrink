@@ -106,3 +106,4 @@ venv.bak/
 nb.*
 nb*
 notebooks/data
+sandbox/
