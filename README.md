@@ -5,3 +5,5 @@ A `python` package for correcting the shrinkage effect that occurs when predicti
 ```
 pip install git+https://github.com/jhmarcus/pcshrink
 ```
+
+Authors: Joseph Marcus / Chi-Chun Liu
