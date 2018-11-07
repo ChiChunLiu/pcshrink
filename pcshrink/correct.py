@@ -181,7 +181,7 @@ class ShrinkageCorrector(object):
         sigma_inv = 1. / s
         Sigma = np.diag(s)
         Sigma_inv = np.diag(sigma_inv)
-        V, VT = svd_flip(V, VT)
+        #V, VT = svd_flip(V, VT)
         U = (Y @ V @ Sigma_inv)
         return U, s, VT
         
@@ -216,13 +216,13 @@ class ShrinkageCorrector(object):
         t = np.sqrt(np.max([1 - n.T @ n, 0]))     # take max to prevent negative value
         K2 = np.eye(l+1) - np.vstack((n, 0)) @ np.vstack((n, t)).T
         K = K1 @ K2
-        # truncated SVD on K
+        # truncated SVD on K and update F
         if sparse:
             U2, _, _ = svds(K, k = k)
-            newF = np.flip(np.hstack((U, np.zeros((U.shape[0],1)))) @ U2[:, :k], axis = 1)
+            newF = np.flip(U @ U2[:-1, :k], axis = 1)
         else:
             U2, _, _ = linalg.svd(K)
-            newF = np.hstack((U, np.zeros((U.shape[0],1)))) @ U2[:, :k]
+            newF = U @ U2[:-1, :k]
 
         return newF
     
