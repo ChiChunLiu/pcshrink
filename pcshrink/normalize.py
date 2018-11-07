@@ -71,7 +71,7 @@ class Normalizer(object):
         if self.scale_type == "emp":
             self.s = np.nanstd(self.Y, axis=1).reshape(self.p_fil, 1)
         elif self.scale_type == "patterson":
-            het = 2. * self.f[self.snp_idx] * (1. - self.f[self.snp_idx])
+            het = self.f[self.snp_idx] * (1. - self.f[self.snp_idx])
             self.s = np.sqrt(het).reshape(self.p_fil, 1)
         else:
             raise ValueError
