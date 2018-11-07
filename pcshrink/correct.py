@@ -19,7 +19,7 @@ class ShrinkageCorrector(object):
     Arugments
     ---------
     Y : np.array
-        p x n normalized genotype matrix
+        p x n genotype matrix
     k : int
         rank used for truncated svd
 
@@ -41,9 +41,6 @@ class ShrinkageCorrector(object):
         on the original dataset
     Sigma : np.array
         matrix of singular values
-    sample_idx : np.array
-        boolean array of randomly sampled indicies for
-        fast jackknife approach
     L_shrunk : np.array
         loadings matrix of projected heldout individuals
     tau : np.array
@@ -104,78 +101,17 @@ class ShrinkageCorrector(object):
         L = (F.T @ Y).T
 
         return((L, F, Sigma))
-
-    def jackknife(self, q, downdate=False, s=None, o=10):
-        """Jackknife estimate of shrinkage correction factor outlined in ...
-
-        https://projecteuclid.org/download/pdfview_1/euclid.aos/1291126967
-
-        We holdout each sample, run PCA on the remaining and subsequently
-        project the heldout sample on the training set pcs to obtain a
-        predicted pc score. The predicted pc scores alongside the original PCA
-        run on all the samples can be used to estimate a shrinkage correction
-        factor that can be applied to new samples.
+    
+    def _full_svd(self, Y):
+        """Description
 
         Arguments
         ---------
-        q : int
-            number of pcs to estimate shrinkage factors on
-        s : int
-            number of random samples (without replacement) to draw
-            for fast approximate jackknife estimate
-        o : int
-            interval of jackknife iterations to print update
+
+        Returns
+        -------
+
         """
-        if s != None:
-            # shrink only a random subset of samples
-            self.sample_idx = np.random.choice(self.Y.shape[1],
-                                               s, replace=False)
-            r = s
-        else:
-            # shrink all the samples
-            self.sample_idx = np.arange(self.n)
-            r = self.n
-
-        # loadings matrix storing shrunk coordinates
-        self.L_shrunk = np.empty((r, q))
-
-        # jackknife
-        if downdate:
-            self._U, self._s, self._Vt = self._full_svd(self.Y)
-            for i in range(r):
-
-                if i % o == 0:
-                    sys.stdout.write("holding out sample {}\n".format(i))
-                
-                F = self._downdate(self._U, self._s, self._Vt, k=q, i=i)   
-                F = self._orient_sign(F, self.F)
-                # project the ith sample back onto the dataset
-                self.L_shrunk[i, :] = F.T @ self.Y[:, i]        
-        else:
-            for i in range(r):
-
-                if i % o == 0:
-                    sys.stdout.write("holding out sample {}\n".format(i))
-
-                idx = np.ones(self.n, dtype="bool")
-                idx[i] = False
-
-                # PCA on the dataset holding the ith sample out
-                L, F, Sigma = self._pca(self.Y[:, idx], q)
-                F = self._orient_sign(F, self.F)
-                self.L_shrunk[i, :] = F.T @ self.Y[:, i]
-        
-        # mean pc score from PCA on the full dataset
-        mean_pc_scores = np.mean(self.L[self.sample_idx, :q]**2, axis=0)
-
-        # mean pc scores using the projected samples
-        mean_pred_pc_scores = np.mean(self.L_shrunk**2, axis=0)
-
-        # jackknife estimate of the shrinkage factor
-        self.tau = 1. / np.sqrt(mean_pred_pc_scores / mean_pc_scores)
-    
-    
-    def _full_svd(self, Y):
         V, lamb, VT = linalg.svd(Y.T @ Y, full_matrices = False)
         s = np.sqrt(lamb)
         sigma_inv = 1. / s
@@ -183,10 +119,12 @@ class ShrinkageCorrector(object):
         Sigma_inv = np.diag(sigma_inv)
         #V, VT = svd_flip(V, VT)
         U = (Y @ V @ Sigma_inv)
+
         return U, s, VT
-        
+    
     def _downdate(self, U, s, Vt, k, i, sparse = True):
-        '''
+        """Description
+
         Arguments:
         ----------
         U : ndarray
@@ -195,27 +133,30 @@ class ShrinkageCorrector(object):
             The singular values sorted in non-increasing order.
         Vt : ndarray
             Unitary matrix having right singular vectors as rows.
-        k: int
+        k : int
             number of pcs to compute
-        sparese: boolean
+        sparse: boolean
             use sparse algorithm for SVD
+
         Returns:
         --------
-        F: new principal component leaving i-th sample out
+        F : type 
+            new principal component leaving i-th sample out
 
         see Fast low-rank modifications of the thin singular value
         decomposition by Matthew Brand (2006)
-        '''
-
+        """
         l = len(s)
         n = Vt[:, i].reshape(-1, 1)
         S = np.diag(s)
+        
         # building matrix K
         K1 = np.block([[S,               np.zeros((l, 1))],
                       [np.zeros((1, l)), np.zeros((1, 1))]])
-        t = np.sqrt(np.max([1 - n.T @ n, 0]))     # take max to prevent negative value
+        t = np.sqrt(np.max([1 - n.T @ n, 0])) # take max to prevent negative value
         K2 = np.eye(l+1) - np.vstack((n, 0)) @ np.vstack((n, t)).T
         K = K1 @ K2
+        
         # truncated SVD on K and update F
         if sparse:
             U2, _, _ = svds(K, k = k)
@@ -226,7 +167,6 @@ class ShrinkageCorrector(object):
 
         return newF
     
-
     def _orient_sign(self, F, F_ref):
         """Orients the sign of the factors matrix to a reference
         factors matrix
@@ -255,24 +195,91 @@ class ShrinkageCorrector(object):
 
         return(F)
 
-    def lstsq_project(self, y, k):
+    def jackknife(self, downdate=False, o=10):
+        """Jackknife estimate of shrinkage correction factor outlined in ...
+
+        https://projecteuclid.org/download/pdfview_1/euclid.aos/1291126967
+
+        We holdout each sample, run PCA on the remaining and subsequently
+        project the heldout sample on the training set pcs to obtain a
+        predicted pc score. The predicted pc scores alongside the original PCA
+        run on all the samples can be used to estimate a shrinkage correction
+        factor that can be applied to new samples.
+
+        Arguments
+        ---------
+        downdate : boolean
+            use the downdate to compute shrunk pc
+        o : int
+            interval of jackknife iterations to print update
+        """
+        # loadings matrix storing shrunk coordinates
+        self.L_shrunk = np.empty((self.n, self.k))
+
+        # jackknife
+        if downdate:
+
+            self._U, self._s, self._Vt = self._full_svd(self.Y)
+            for i in range(self.n):
+
+                if i % o == 0:
+                    sys.stdout.write("holding out sample {}\n".format(i))
+                
+                F = self._downdate(self._U, self._s, self._Vt, k=q, i=i)   
+                F = self._orient_sign(F, self.F)
+                
+                self.L_shrunk[i, :] = F.T @ self.Y[:, i]        
+        else:
+
+            for i in range(self.n):
+
+                if i % o == 0:
+                    sys.stdout.write("holding out sample {}\n".format(i))
+
+                idx = np.ones(self.n, dtype="bool")
+                idx[i] = False
+
+                # PCA on the dataset holding the ith sample out
+                L, F, Sigma = self._pca(self.Y[:, idx], q)
+                F = self._orient_sign(F, self.F)
+                
+                self.L_shrunk[i, :] = F.T @ self.Y[:, i]
+        
+        # mean pc score from PCA on the full dataset
+        mean_pc_scores = np.mean(self.L**2, axis=0)
+
+        # mean pc scores using the projected samples
+        mean_pred_pc_scores = np.mean(self.L_shrunk**2, axis=0)
+
+        # jackknife estimate of the shrinkage factor
+        self.tau = 1. / np.sqrt(mean_pred_pc_scores / mean_pc_scores)
+
+    def lstsq_project(self, Y_test, o=10):
         """Projects an individual on pcs using non-missing features
 
         Arguments
         ---------
-        y : np.array
+        Y_test : np.array
             centered and scaled sample to projected
-        k : int
-            number of pcs to use for the projection
 
         Returns
         -------
-        l : np.array
+        L : np.array
             uncorrected loadings for the focal individual
         """
-        non_missing_idx = np.where(~np.isnan(y))[0]
-        F = self.F[non_missing_idx, :k]
-        y = y[non_missing_idx]
-        l = np.linalg.lstsq(F, y)[0]
+        n_test = Y_test.shape[1]
+        L = np.empty((n_test, self.k))
+        for i in range(n_test):
+            if i % o == 0:
+                sys.stdout.write("projecting sample {}\n".format(i))
+            y = Y_test[:, i]
+            non_missing_idx = np.where(~np.isnan(y))[0]
+            y = y[non_missing_idx]
+            F = self.F[non_missing_idx, :]
+            L[i, :] = np.linalg.lstsq(F, y)[0]
+        
+        # correct 
+        for k in range(self.k):
+            L[:, k] = self.tau[k] * L[:, k]
 
-        return(l)
+        return(L)
