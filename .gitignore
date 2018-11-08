@@ -107,3 +107,6 @@ nb.*
 nb*
 notebooks/data
 sandbox/
+
+data/data_fil.*
+
