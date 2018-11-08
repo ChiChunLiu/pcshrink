@@ -225,7 +225,7 @@ class ShrinkageCorrector(object):
                 if i % o == 0:
                     sys.stdout.write("holding out sample {}\n".format(i))
                 
-                F = self._downdate(self._U, self._s, self._Vt, k=q, i=i)   
+                F = self._downdate(self._U, self._s, self._Vt, k=self.k, i=i)   
                 F = self._orient_sign(F, self.F)
                 
                 self.L_shrunk[i, :] = F.T @ self.Y[:, i]        
@@ -240,7 +240,7 @@ class ShrinkageCorrector(object):
                 idx[i] = False
 
                 # PCA on the dataset holding the ith sample out
-                L, F, Sigma = self._pca(self.Y[:, idx], q)
+                L, F, Sigma = self._pca(self.Y[:, idx], self.k)
                 F = self._orient_sign(F, self.F)
                 
                 self.L_shrunk[i, :] = F.T @ self.Y[:, i]
@@ -276,7 +276,7 @@ class ShrinkageCorrector(object):
             non_missing_idx = np.where(~np.isnan(y))[0]
             y = y[non_missing_idx]
             F = self.F[non_missing_idx, :]
-            L[i, :] = np.linalg.lstsq(F, y)[0]
+            L[i, :] = np.linalg.lstsq(F, y, rcond=None)[0]
         
         # correct 
         for k in range(self.k):
