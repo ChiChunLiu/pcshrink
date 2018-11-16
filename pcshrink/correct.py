@@ -274,9 +274,9 @@ class ShrinkageCorrector(object):
                 sys.stdout.write("projecting sample {}\n".format(i))
             y = Y_test[:, i]
             non_missing_idx = np.where(~np.isnan(y))[0]
-            y = y[non_missing_idx]
-            F = self.F[non_missing_idx, :]
-            L[i, :] = np.linalg.lstsq(F, y, rcond=None)[0]
+            y_ = y[non_missing_idx]
+            F_ = self.F[non_missing_idx, :]
+            L[i, :] = np.linalg.lstsq(F_, y_)[0]
         
         # correct 
         for k in range(self.k):
